@@ -1,0 +1,20 @@
+{
+  "name": "glacier-tide",
+  "version": "1.0.0",
+  "description": "An interactive approach for showing the effects of melted glaciers on the world, using MERN stack and ML.\r By,\r # Tanush Abhinav Shah\r # Utsav Sangani\r # Venkata Rohitraj Kesanakurti\r # Atharva Sawant",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GlacierTide/Glacier-Tide.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/GlacierTide/Glacier-Tide/issues"
+  },
+  "homepage": "https://github.com/GlacierTide/Glacier-Tide#readme"
+}
