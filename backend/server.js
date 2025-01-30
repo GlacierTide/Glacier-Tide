@@ -1,13 +1,15 @@
+require('dotenv').config();
 const express = require('express');
-const { MongoClient } = require('mongodb');
+const bcrypt = require('bcrypt'); // Import bcrypt for password hashing
+const mongoose = require('mongoose');
 const cors = require('cors');
-var bodyParser = require("body-parser");
-var mongoose = require("mongoose");
+const bodyParser = require('body-parser');
+
 // const Event = require('./models/Events');
 
 const app = express();
 const PORT = process.env.PORT || 8800;
-const MONGODB_URI = 'mongodb://localhost:27017/Database';
+const MONGODB_URI = process.env.MONGODB_URI;
 
 // Middleware
 app.use(bodyParser.json());
@@ -17,11 +19,14 @@ app.use(cors({
 }));
 
 // Connect to MongoDB
-mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+mongoose.connect(MONGODB_URI)
+    .then(() => console.log('Connected to MongoDB Atlas'))
+    .catch((error) => console.error('Error connecting to MongoDB Atlas:', error));
+
 const db = mongoose.connection;
 
 db.on('error', (error) => console.error("Error in connecting to database:", error));
-db.once('open', () => console.log("Connected to database"));
+db.once('open', () => console.log("Connected to MongoDB Atlas database"));
 
 // Email validation function
 function validateEmail(email) {
@@ -42,42 +47,46 @@ app.post("/signup", async (req, res) => {
         if (existingUser) {
             return res.status(409).send("Email already exists");
         }
-    } catch (error) {
-        console.error("Error checking existing email:", error);
-        return res.status(500).send("Error checking existing email");
-    }
 
-    const data = {
-        firstname,
-        lastname,
-        email,
-        password // Consider hashing the password before storing it in production
-    };
+        // Hash the password before saving
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-    db.collection('users').insertOne(data, (err, collection) => {
-        if (err) {
-            console.error("Error inserting record:", err);
-            return res.status(500).send("Error inserting record");
-        }
+        const data = {
+            firstname,
+            lastname,
+            email,
+            password: hashedPassword // Save hashed password
+        };
+
+        await db.collection('users').insertOne(data);
         console.log("Record inserted successfully");
         return res.status(200).send("Signup Successful");
-    });
+    } catch (error) {
+        console.error("Error inserting record:", error);
+        return res.status(500).send("Error inserting record");
+    }
 });
 
 // Login endpoint
 app.post("/login", async (req, res) => {
-    try {
-        const { email, password } = req.body;
+    const { email, password } = req.body;
 
-        if (!email || !password) {
-            return res.status(400).send("Email and password are required.");
+    if (!email || !password) {
+        return res.status(400).send("Email and password are required.");
+    }
+
+    try {
+        const user = await db.collection('users').findOne({ email: email });
+
+        if (!user) {
+            return res.status(401).send("Invalid email or password");
         }
 
-        const user = await db.collection('users').findOne({ email: email, password: password });
-        
-        if (user) {
+        // Compare the password with the stored hashed password
+        const match = await bcrypt.compare(password, user.password);
+
+        if (match) {
             console.log("Login Success");
-            // Send back the userId in the response along with the success message
             return res.status(200).json({ message: "Login Successful", userId: user._id });
         } else {
             return res.status(401).send("Invalid email or password");
